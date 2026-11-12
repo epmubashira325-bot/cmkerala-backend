@@ -1,0 +1,2769 @@
+openapi: 3.0.3
+info:
+  title: CM Kerala - Chief Minister's Public Grievance Redressal Portal API
+  version: 1.0.0
+  description: Official RESTful API documentation for Citizen, Officer, and CMO Admin
+    workflows.
+paths:
+  /api/v1/ai/analyze/:
+    post:
+      operationId: v1_ai_analyze_create
+      description: Provides automated triage suggestions for complaint category, priority
+        level, and department routing. Suggestions are advisory and can be reviewed
+        before submission.
+      summary: 'Citizen: Analyze grievance draft using Google Gemini AI'
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIAnalyzeRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AIAnalyzeRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AIAnalyzeRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAnalyzeResponse'
+          description: ''
+        '400':
+          description: Invalid request fields
+        '429':
+          description: Rate limit exceeded
+        '503':
+          description: AI service temporarily unavailable (fallback to manual submission)
+  /api/v1/auth/login/:
+    post:
+      operationId: v1_auth_login_create
+      description: Authenticates citizen, officer, or CMO admin and returns JWT tokens
+        with user profile.
+      summary: User Login (Email and Password)
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/logout/:
+    post:
+      operationId: v1_auth_logout_create
+      description: Invalidate refresh token and perform secure logout.
+      summary: User Logout
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+        '400':
+          description: Invalid or expired token
+  /api/v1/auth/me/:
+    get:
+      operationId: v1_auth_me_retrieve
+      description: Retrieve authenticated user profile.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: v1_auth_register_create
+      description: |-
+        Register a new citizen account.
+        Public registration strictly creates CITIZEN role accounts.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CitizenRegistrationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CitizenRegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CitizenRegistrationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitizenRegistration'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/citizen/grievances/:
+    get:
+      operationId: v1_citizen_grievances_list
+      description: List citizen's own grievances or submit a new grievance with optional
+        attachments.
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: department
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: district
+        schema:
+          type: string
+          enum:
+          - ALAPPUZHA
+          - ERNAKULAM
+          - IDUKKI
+          - KANNUR
+          - KASARAGOD
+          - KOLLAM
+          - KOTTAYAM
+          - KOZHIKODE
+          - MALAPPURAM
+          - PALAKKAD
+          - PATHANAMTHITTA
+          - THIRUVANANTHAPURAM
+          - THRISSUR
+          - WAYANAD
+        description: |-
+          Kerala District where grievance originated.
+
+          * `ALAPPUZHA` - Alappuzha
+          * `ERNAKULAM` - Ernakulam
+          * `IDUKKI` - Idukki
+          * `KANNUR` - Kannur
+          * `KASARAGOD` - Kasaragod
+          * `KOLLAM` - Kollam
+          * `KOTTAYAM` - Kottayam
+          * `KOZHIKODE` - Kozhikode
+          * `MALAPPURAM` - Malappuram
+          * `PALAKKAD` - Palakkad
+          * `PATHANAMTHITTA` - Pathanamthitta
+          * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+          * `THRISSUR` - Thrissur
+          * `WAYANAD` - Wayanad
+      - in: query
+        name: is_escalated
+        schema:
+          type: boolean
+      - in: query
+        name: officer
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: priority
+        schema:
+          type: string
+          enum:
+          - HIGH
+          - LOW
+          - MEDIUM
+        description: |-
+          Priority level assessed manually or via AI triage.
+
+          * `LOW` - Low
+          * `MEDIUM` - Medium
+          * `HIGH` - High
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - IN_PROGRESS
+          - REOPENED
+          - RESOLVED
+          - SUBMITTED
+          - UNDER_REVIEW
+        description: |-
+          Current life-cycle status of the grievance.
+
+          * `SUBMITTED` - Submitted
+          * `UNDER_REVIEW` - Under Review
+          * `IN_PROGRESS` - In Progress
+          * `RESOLVED` - Resolved
+          * `REOPENED` - Reopened
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGrievanceListList'
+          description: ''
+    post:
+      operationId: v1_citizen_grievances_create
+      description: List citizen's own grievances or submit a new grievance with optional
+        attachments.
+      summary: 'Citizen: Submit a new grievance'
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CitizenGrievanceCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CitizenGrievanceCreateRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CitizenGrievanceCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitizenGrievanceCreate'
+          description: ''
+  /api/v1/citizen/grievances/{id}/:
+    get:
+      operationId: v1_citizen_grievances_retrieve
+      description: Retrieve full details and history for a citizen's own grievance.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrievanceDetail'
+          description: ''
+  /api/v1/citizen/grievances/{id}/feedback/:
+    post:
+      operationId: v1_citizen_grievances_feedback_create
+      description: Submit feedback rating for a resolved grievance.
+      summary: 'Citizen: Submit satisfaction feedback for resolved grievance'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CitizenFeedbackRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CitizenFeedbackRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CitizenFeedbackRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitizenFeedback'
+          description: ''
+  /api/v1/cmo/departments/:
+    get:
+      operationId: v1_cmo_departments_list
+      description: CMO administration endpoint to list all departments (including
+        inactive) and create new ones.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDepartmentList'
+          description: ''
+    post:
+      operationId: v1_cmo_departments_create
+      description: CMO administration endpoint to list all departments (including
+        inactive) and create new ones.
+      summary: 'CMO: List or create department'
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+  /api/v1/cmo/departments/{id}/:
+    get:
+      operationId: v1_cmo_departments_retrieve
+      description: CMO administration endpoint to retrieve and modify department details.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+    put:
+      operationId: v1_cmo_departments_update
+      description: CMO administration endpoint to retrieve and modify department details.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+    patch:
+      operationId: v1_cmo_departments_partial_update
+      description: CMO administration endpoint to retrieve and modify department details.
+      summary: 'CMO: Retrieve or update department'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+  /api/v1/cmo/grievances/:
+    get:
+      operationId: v1_cmo_grievances_list
+      description: 'CMO: View and filter all citizen grievances across all departments
+        and districts.'
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: department
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: district
+        schema:
+          type: string
+          enum:
+          - ALAPPUZHA
+          - ERNAKULAM
+          - IDUKKI
+          - KANNUR
+          - KASARAGOD
+          - KOLLAM
+          - KOTTAYAM
+          - KOZHIKODE
+          - MALAPPURAM
+          - PALAKKAD
+          - PATHANAMTHITTA
+          - THIRUVANANTHAPURAM
+          - THRISSUR
+          - WAYANAD
+        description: |-
+          Kerala District where grievance originated.
+
+          * `ALAPPUZHA` - Alappuzha
+          * `ERNAKULAM` - Ernakulam
+          * `IDUKKI` - Idukki
+          * `KANNUR` - Kannur
+          * `KASARAGOD` - Kasaragod
+          * `KOLLAM` - Kollam
+          * `KOTTAYAM` - Kottayam
+          * `KOZHIKODE` - Kozhikode
+          * `MALAPPURAM` - Malappuram
+          * `PALAKKAD` - Palakkad
+          * `PATHANAMTHITTA` - Pathanamthitta
+          * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+          * `THRISSUR` - Thrissur
+          * `WAYANAD` - Wayanad
+      - in: query
+        name: is_escalated
+        schema:
+          type: boolean
+      - in: query
+        name: officer
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: priority
+        schema:
+          type: string
+          enum:
+          - HIGH
+          - LOW
+          - MEDIUM
+        description: |-
+          Priority level assessed manually or via AI triage.
+
+          * `LOW` - Low
+          * `MEDIUM` - Medium
+          * `HIGH` - High
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - IN_PROGRESS
+          - REOPENED
+          - RESOLVED
+          - SUBMITTED
+          - UNDER_REVIEW
+        description: |-
+          Current life-cycle status of the grievance.
+
+          * `SUBMITTED` - Submitted
+          * `UNDER_REVIEW` - Under Review
+          * `IN_PROGRESS` - In Progress
+          * `RESOLVED` - Resolved
+          * `REOPENED` - Reopened
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGrievanceListList'
+          description: ''
+  /api/v1/cmo/grievances/{id}/:
+    get:
+      operationId: v1_cmo_grievances_retrieve
+      description: 'CMO: View complete details, attachments, history logs, and ATRs
+        for any grievance.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrievanceDetail'
+          description: ''
+  /api/v1/cmo/grievances/{id}/assign/:
+    post:
+      operationId: v1_cmo_grievances_assign_create
+      description: 'CMO: Assign or reassign grievance to a department and/or specific
+        officer.'
+      summary: 'CMO: Assign grievance to department and officer'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignDepartmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssignDepartmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssignDepartmentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignDepartment'
+          description: ''
+  /api/v1/cmo/grievances/{id}/escalate/:
+    post:
+      operationId: v1_cmo_grievances_escalate_create
+      description: 'CMO: Flag grievance as escalated.'
+      summary: 'CMO: Escalate grievance'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EscalateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EscalateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escalate'
+          description: ''
+  /api/v1/cmo/grievances/{id}/remarks/:
+    post:
+      operationId: v1_cmo_grievances_remarks_create
+      description: 'CMO: Add internal remark or observation to grievance history.'
+      summary: 'CMO: Add internal remark to grievance history'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemarkRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RemarkRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RemarkRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Remark'
+          description: ''
+  /api/v1/cmo/reports/{id}/review/:
+    post:
+      operationId: v1_cmo_reports_review_create
+      description: 'CMO: Review Action Taken Report filed by officer. Approves or
+        rejects report.'
+      summary: 'CMO: Review and Approve/Reject Action Taken Report'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewATRRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewATRRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewATRRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewATR'
+          description: ''
+  /api/v1/cmo/stats/:
+    get:
+      operationId: v1_cmo_stats_retrieve
+      description: |-
+        Live aggregated statistics for CMO executive dashboard.
+        Computes total counts, status breakdown, SLA breaches, and distributions across
+        Kerala's 14 districts, government departments, and priority levels.
+      summary: 'CMO: Retrieve comprehensive dashboard metrics and distributions'
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CMODashboardStatsResponse'
+          description: ''
+  /api/v1/departments/:
+    get:
+      operationId: v1_departments_list
+      description: Public listing of active government departments.
+      summary: List all active departments
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+          description: ''
+  /api/v1/departments/{id}/:
+    get:
+      operationId: v1_departments_retrieve
+      description: Public retrieve view for specific department.
+      summary: Get active department details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+  /api/v1/grievances/track/:
+    get:
+      operationId: v1_grievances_track_retrieve
+      description: Public tracking by reference number. Exposes zero private citizen
+        data.
+      summary: 'Public: Track grievance status by reference number'
+      parameters:
+      - in: query
+        name: ref
+        schema:
+          type: string
+        description: Grievance reference number (e.g. CMK-20261112-XXXXXXXX)
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGrievanceTrack'
+          description: ''
+        '404':
+          description: Reference number not found
+  /api/v1/officer/grievances/:
+    get:
+      operationId: v1_officer_grievances_list
+      description: 'Officer: List only grievances assigned to the logged-in officer
+        or their department.'
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: department
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: district
+        schema:
+          type: string
+          enum:
+          - ALAPPUZHA
+          - ERNAKULAM
+          - IDUKKI
+          - KANNUR
+          - KASARAGOD
+          - KOLLAM
+          - KOTTAYAM
+          - KOZHIKODE
+          - MALAPPURAM
+          - PALAKKAD
+          - PATHANAMTHITTA
+          - THIRUVANANTHAPURAM
+          - THRISSUR
+          - WAYANAD
+        description: |-
+          Kerala District where grievance originated.
+
+          * `ALAPPUZHA` - Alappuzha
+          * `ERNAKULAM` - Ernakulam
+          * `IDUKKI` - Idukki
+          * `KANNUR` - Kannur
+          * `KASARAGOD` - Kasaragod
+          * `KOLLAM` - Kollam
+          * `KOTTAYAM` - Kottayam
+          * `KOZHIKODE` - Kozhikode
+          * `MALAPPURAM` - Malappuram
+          * `PALAKKAD` - Palakkad
+          * `PATHANAMTHITTA` - Pathanamthitta
+          * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+          * `THRISSUR` - Thrissur
+          * `WAYANAD` - Wayanad
+      - in: query
+        name: is_escalated
+        schema:
+          type: boolean
+      - in: query
+        name: officer
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: priority
+        schema:
+          type: string
+          enum:
+          - HIGH
+          - LOW
+          - MEDIUM
+        description: |-
+          Priority level assessed manually or via AI triage.
+
+          * `LOW` - Low
+          * `MEDIUM` - Medium
+          * `HIGH` - High
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - IN_PROGRESS
+          - REOPENED
+          - RESOLVED
+          - SUBMITTED
+          - UNDER_REVIEW
+        description: |-
+          Current life-cycle status of the grievance.
+
+          * `SUBMITTED` - Submitted
+          * `UNDER_REVIEW` - Under Review
+          * `IN_PROGRESS` - In Progress
+          * `RESOLVED` - Resolved
+          * `REOPENED` - Reopened
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGrievanceListList'
+          description: ''
+  /api/v1/officer/grievances/{id}/:
+    get:
+      operationId: v1_officer_grievances_retrieve
+      description: 'Officer: Retrieve details for an authorized assigned grievance.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrievanceDetail'
+          description: ''
+  /api/v1/officer/grievances/{id}/remarks/:
+    post:
+      operationId: v1_officer_grievances_remarks_create
+      description: |-
+        Officer: Record investigation note on an assigned grievance.
+        Automatically moves grievance to IN_PROGRESS if currently UNDER_REVIEW.
+      summary: 'Officer: Record investigation remarks'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemarkRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RemarkRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RemarkRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Remark'
+          description: ''
+  /api/v1/officer/grievances/{id}/reports/:
+    post:
+      operationId: v1_officer_grievances_reports_create
+      description: 'Officer: Submit Action Taken Report (ATR) for CMO review.'
+      summary: 'Officer: Submit Action Taken Report (ATR)'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ActionTakenReportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActionTakenReportRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionTakenReportRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionTakenReport'
+          description: ''
+  /api/v1/public/contact/:
+    post:
+      operationId: v1_public_contact_create
+      description: Public endpoint to submit general contact enquiries.
+      summary: 'Public: Submit general contact enquiry'
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactEnquiryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContactEnquiryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContactEnquiryRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactEnquiry'
+          description: ''
+components:
+  schemas:
+    AIAnalyzeRequestRequest:
+      type: object
+      description: Request serializer for complaint triage analysis.
+      properties:
+        subject:
+          type: string
+          minLength: 5
+          description: Subject or title of the citizen complaint.
+          maxLength: 255
+        description:
+          type: string
+          minLength: 15
+          description: Detailed complaint description.
+          maxLength: 5000
+        district:
+          allOf:
+          - $ref: '#/components/schemas/DistrictEnum'
+          description: |-
+            One of the 14 revenue districts of Kerala.
+
+            * `ALAPPUZHA` - Alappuzha
+            * `ERNAKULAM` - Ernakulam
+            * `IDUKKI` - Idukki
+            * `KANNUR` - Kannur
+            * `KASARAGOD` - Kasaragod
+            * `KOLLAM` - Kollam
+            * `KOTTAYAM` - Kottayam
+            * `KOZHIKODE` - Kozhikode
+            * `MALAPPURAM` - Malappuram
+            * `PALAKKAD` - Palakkad
+            * `PATHANAMTHITTA` - Pathanamthitta
+            * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+            * `THRISSUR` - Thrissur
+            * `WAYANAD` - Wayanad
+      required:
+      - description
+      - district
+      - subject
+    AIAnalyzeResponse:
+      type: object
+      properties:
+        suggestions:
+          $ref: '#/components/schemas/AISuggestions'
+        metadata:
+          $ref: '#/components/schemas/AIMetadata'
+        message:
+          type: string
+          default: AI analysis completed successfully.
+      required:
+      - metadata
+      - suggestions
+    AIMetadata:
+      type: object
+      properties:
+        provider:
+          type: string
+        model:
+          type: string
+        prompt_version:
+          type: string
+        timestamp:
+          type: string
+        validated:
+          type: boolean
+      required:
+      - model
+      - prompt_version
+      - provider
+      - timestamp
+      - validated
+    AISuggestions:
+      type: object
+      properties:
+        suggested_department:
+          type: string
+        suggested_department_id:
+          type: string
+          format: uuid
+          nullable: true
+        suggested_department_code:
+          type: string
+          nullable: true
+        suggested_category:
+          type: string
+        suggested_priority:
+          $ref: '#/components/schemas/SuggestedPriorityEnum'
+        summary:
+          type: string
+        duplicate_warning:
+          type: boolean
+          default: false
+      required:
+      - suggested_category
+      - suggested_priority
+      - summary
+    ActionTakenReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique ATR report identifier.
+        grievance:
+          type: string
+          format: uuid
+          description: Grievance investigated.
+          readOnly: true
+        officer:
+          type: string
+          format: uuid
+          description: Officer who executed the investigation and filed the report.
+          readOnly: true
+        officer_name:
+          type: string
+          readOnly: true
+        investigation_description:
+          type: string
+          description: Detailed field findings and verification details.
+        resolution_details:
+          type: string
+          description: Action implemented or corrective measures taken.
+        report_attachment:
+          type: string
+          format: uri
+          nullable: true
+          description: Optional signed report PDF or photographic evidence of work
+            done.
+        review_status:
+          allOf:
+          - $ref: '#/components/schemas/ReviewStatusEnum'
+          readOnly: true
+          description: |-
+            Status of CMO administrative review.
+
+            * `PENDING` - Pending Review
+            * `APPROVED` - Approved
+            * `REJECTED` - Rejected
+        reviewed_by:
+          type: string
+          format: uuid
+          description: CMO Admin who approved or rejected the report.
+          readOnly: true
+          nullable: true
+        reviewed_by_name:
+          type: string
+          readOnly: true
+        review_remarks:
+          type: string
+          readOnly: true
+          description: Observations or feedback provided during review.
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Submission timestamp.
+        reviewed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: Timestamp of review decision.
+      required:
+      - grievance
+      - id
+      - investigation_description
+      - officer
+      - officer_name
+      - resolution_details
+      - review_remarks
+      - review_status
+      - reviewed_at
+      - reviewed_by
+      - reviewed_by_name
+      - submitted_at
+    ActionTakenReportRequest:
+      type: object
+      properties:
+        investigation_description:
+          type: string
+          minLength: 1
+          description: Detailed field findings and verification details.
+        resolution_details:
+          type: string
+          minLength: 1
+          description: Action implemented or corrective measures taken.
+        report_attachment:
+          type: string
+          format: binary
+          nullable: true
+          description: Optional signed report PDF or photographic evidence of work
+            done.
+      required:
+      - investigation_description
+      - resolution_details
+    AssignDepartment:
+      type: object
+      properties:
+        department_id:
+          type: string
+          format: uuid
+        officer_id:
+          type: string
+          format: uuid
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        remarks:
+          type: string
+      required:
+      - department_id
+    AssignDepartmentRequest:
+      type: object
+      properties:
+        department_id:
+          type: string
+          format: uuid
+        officer_id:
+          type: string
+          format: uuid
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        remarks:
+          type: string
+      required:
+      - department_id
+    CMODashboardStatsResponse:
+      type: object
+      properties:
+        overview:
+          $ref: '#/components/schemas/DashboardOverview'
+        priority_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+        district_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistrictStat'
+        department_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentStat'
+      required:
+      - department_distribution
+      - district_distribution
+      - overview
+      - priority_distribution
+    CitizenFeedback:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique feedback identifier.
+        grievance:
+          type: string
+          format: uuid
+          description: Grievance being rated.
+          readOnly: true
+        citizen:
+          type: string
+          format: uuid
+          description: Citizen providing feedback.
+          readOnly: true
+        citizen_name:
+          type: string
+          readOnly: true
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          description: Satisfaction rating between 1 (Very Dissatisfied) and 5 (Very
+            Satisfied).
+        comments:
+          type: string
+          description: Detailed citizen comments or observations.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when feedback was submitted.
+      required:
+      - citizen
+      - citizen_name
+      - created_at
+      - grievance
+      - id
+      - rating
+    CitizenFeedbackRequest:
+      type: object
+      properties:
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          description: Satisfaction rating between 1 (Very Dissatisfied) and 5 (Very
+            Satisfied).
+        comments:
+          type: string
+          description: Detailed citizen comments or observations.
+      required:
+      - rating
+    CitizenGrievanceCreate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique UUID primary key.
+        reference_number:
+          type: string
+          readOnly: true
+          description: Human-readable unique tracking reference (e.g. CMK-2026-XXXXXX).
+        district:
+          allOf:
+          - $ref: '#/components/schemas/DistrictEnum'
+          description: |-
+            Kerala District where grievance originated.
+
+            * `ALAPPUZHA` - Alappuzha
+            * `ERNAKULAM` - Ernakulam
+            * `IDUKKI` - Idukki
+            * `KANNUR` - Kannur
+            * `KASARAGOD` - Kasaragod
+            * `KOLLAM` - Kollam
+            * `KOTTAYAM` - Kottayam
+            * `KOZHIKODE` - Kozhikode
+            * `MALAPPURAM` - Malappuram
+            * `PALAKKAD` - Palakkad
+            * `PATHANAMTHITTA` - Pathanamthitta
+            * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+            * `THRISSUR` - Thrissur
+            * `WAYANAD` - Wayanad
+        category:
+          type: string
+          description: Grievance classification (e.g., Public Infrastructure, Healthcare,
+            Revenue, Welfare).
+          maxLength: 120
+        subject:
+          type: string
+          description: Brief subject of the grievance.
+          maxLength: 255
+        description:
+          type: string
+          description: Detailed description of the citizen's complaint.
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          description: |-
+            Priority level assessed manually or via AI triage.
+
+            * `LOW` - Low
+            * `MEDIUM` - Medium
+            * `HIGH` - High
+        status:
+          allOf:
+          - $ref: '#/components/schemas/NewStatusEnum'
+          readOnly: true
+          description: |-
+            Current life-cycle status of the grievance.
+
+            * `SUBMITTED` - Submitted
+            * `UNDER_REVIEW` - Under Review
+            * `IN_PROGRESS` - In Progress
+            * `RESOLVED` - Resolved
+            * `REOPENED` - Reopened
+        ai_suggestions:
+          readOnly: true
+          description: JSON payload containing AI department recommendation, priority
+            score, and extracted summary.
+        ai_metadata:
+          readOnly: true
+          description: AI provider, model version, timestamp and inference token counts.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp of submission.
+      required:
+      - ai_metadata
+      - ai_suggestions
+      - category
+      - created_at
+      - description
+      - district
+      - id
+      - reference_number
+      - status
+      - subject
+    CitizenGrievanceCreateRequest:
+      type: object
+      properties:
+        district:
+          allOf:
+          - $ref: '#/components/schemas/DistrictEnum'
+          description: |-
+            Kerala District where grievance originated.
+
+            * `ALAPPUZHA` - Alappuzha
+            * `ERNAKULAM` - Ernakulam
+            * `IDUKKI` - Idukki
+            * `KANNUR` - Kannur
+            * `KASARAGOD` - Kasaragod
+            * `KOLLAM` - Kollam
+            * `KOTTAYAM` - Kottayam
+            * `KOZHIKODE` - Kozhikode
+            * `MALAPPURAM` - Malappuram
+            * `PALAKKAD` - Palakkad
+            * `PATHANAMTHITTA` - Pathanamthitta
+            * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+            * `THRISSUR` - Thrissur
+            * `WAYANAD` - Wayanad
+        category:
+          type: string
+          minLength: 1
+          description: Grievance classification (e.g., Public Infrastructure, Healthcare,
+            Revenue, Welfare).
+          maxLength: 120
+        subject:
+          type: string
+          minLength: 1
+          description: Brief subject of the grievance.
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          description: Detailed description of the citizen's complaint.
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          description: |-
+            Priority level assessed manually or via AI triage.
+
+            * `LOW` - Low
+            * `MEDIUM` - Medium
+            * `HIGH` - High
+        attachments:
+          type: array
+          items:
+            type: string
+            format: binary
+          writeOnly: true
+        include_ai_triage:
+          type: boolean
+          writeOnly: true
+          default: false
+          description: If True, automatically requests Gemini AI triage and links
+            suggestions to the grievance.
+      required:
+      - category
+      - description
+      - district
+      - subject
+    CitizenRegistration:
+      type: object
+      description: |-
+        Serializer for citizen self-registration.
+        Strictly forces role to CITIZEN and ignores any submitted role or department.
+      properties:
+        email:
+          type: string
+          format: email
+          description: Primary email address used for login.
+          maxLength: 254
+        full_name:
+          type: string
+          description: Full legal name of the user.
+          maxLength: 255
+        mobile_number:
+          description: Contact mobile number.
+          oneOf:
+          - type: string
+            pattern: ^\+?1?\d{9,15}$
+            maxLength: 20
+          - type: string
+            maxLength: 0
+      required:
+      - email
+      - full_name
+    CitizenRegistrationRequest:
+      type: object
+      description: |-
+        Serializer for citizen self-registration.
+        Strictly forces role to CITIZEN and ignores any submitted role or department.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: Primary email address used for login.
+          maxLength: 254
+        full_name:
+          type: string
+          minLength: 1
+          description: Full legal name of the user.
+          maxLength: 255
+        mobile_number:
+          description: Contact mobile number.
+          oneOf:
+          - type: string
+            pattern: ^\+?1?\d{9,15}$
+            maxLength: 20
+          - type: string
+            maxLength: 0
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - full_name
+      - password
+      - password_confirm
+    ContactEnquiry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique identifier for the contact enquiry.
+        name:
+          type: string
+          description: Name of the person making the enquiry.
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: Email address of the sender.
+          maxLength: 254
+        subject:
+          type: string
+          description: Subject or topic of the enquiry.
+          maxLength: 255
+        message:
+          type: string
+          description: Detailed message text.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the enquiry was received.
+      required:
+      - created_at
+      - email
+      - id
+      - message
+      - name
+      - subject
+    ContactEnquiryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name of the person making the enquiry.
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: Email address of the sender.
+          maxLength: 254
+        subject:
+          type: string
+          minLength: 1
+          description: Subject or topic of the enquiry.
+          maxLength: 255
+        message:
+          type: string
+          minLength: 1
+          description: Detailed message text.
+      required:
+      - email
+      - message
+      - name
+      - subject
+    CustomTokenObtainPairRequest:
+      type: object
+      description: Custom JWT serializer that accepts email and password and returns
+        enriched user payload.
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    DashboardOverview:
+      type: object
+      properties:
+        total_grievances:
+          type: integer
+        submitted:
+          type: integer
+        under_review:
+          type: integer
+        in_progress:
+          type: integer
+        resolved:
+          type: integer
+        reopened:
+          type: integer
+        overdue:
+          type: integer
+        escalated:
+          type: integer
+      required:
+      - escalated
+      - in_progress
+      - overdue
+      - reopened
+      - resolved
+      - submitted
+      - total_grievances
+      - under_review
+    DecisionEnum:
+      enum:
+      - APPROVED
+      - REJECTED
+      type: string
+      description: |-
+        * `APPROVED` - APPROVED
+        * `REJECTED` - REJECTED
+    Department:
+      type: object
+      description: Standard Department serializer.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique identifier for the department.
+        name:
+          type: string
+          description: Official name of the department (e.g., Revenue, Health, Police).
+          maxLength: 200
+        code:
+          type: string
+          description: Unique department short code (e.g., REV, HLT, POL).
+          maxLength: 50
+        description:
+          type: string
+          description: Brief overview of department jurisdiction and services.
+        is_active:
+          type: boolean
+          description: Designates whether this department is active and can receive
+            assignments.
+        officer_count:
+          type: integer
+          readOnly: true
+        active_grievance_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the department record was created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the department record was last modified.
+      required:
+      - active_grievance_count
+      - code
+      - created_at
+      - id
+      - name
+      - officer_count
+      - updated_at
+    DepartmentAssignment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique assignment identifier.
+        department:
+          type: string
+          format: uuid
+          description: Department to which grievance is assigned.
+          readOnly: true
+        department_name:
+          type: string
+          readOnly: true
+        department_code:
+          type: string
+          readOnly: true
+        officer:
+          type: string
+          format: uuid
+          description: Individual officer assigned to investigate.
+          readOnly: true
+          nullable: true
+        officer_name:
+          type: string
+          readOnly: true
+        assigned_by:
+          type: string
+          format: uuid
+          description: User (CMO Admin or Department Nodal Officer) who dispatched
+            the assignment.
+          readOnly: true
+        assigned_by_name:
+          type: string
+          readOnly: true
+        assigned_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Date and time when assignment was initiated.
+        due_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: SLA resolution deadline specified during assignment.
+        is_active:
+          type: boolean
+          readOnly: true
+          description: Indicates if this assignment is currently active.
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: Timestamp when assignment concluded or was reassigned.
+      required:
+      - assigned_at
+      - assigned_by
+      - assigned_by_name
+      - department
+      - department_code
+      - department_name
+      - due_date
+      - ended_at
+      - id
+      - is_active
+      - officer
+      - officer_name
+    DepartmentRequest:
+      type: object
+      description: Standard Department serializer.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Official name of the department (e.g., Revenue, Health, Police).
+          maxLength: 200
+        code:
+          type: string
+          minLength: 1
+          description: Unique department short code (e.g., REV, HLT, POL).
+          maxLength: 50
+        description:
+          type: string
+          description: Brief overview of department jurisdiction and services.
+        is_active:
+          type: boolean
+          description: Designates whether this department is active and can receive
+            assignments.
+      required:
+      - code
+      - name
+    DepartmentStat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        total_grievances:
+          type: integer
+        pending_grievances:
+          type: integer
+        resolved_grievances:
+          type: integer
+      required:
+      - code
+      - id
+      - name
+      - pending_grievances
+      - resolved_grievances
+      - total_grievances
+    DistrictEnum:
+      enum:
+      - ALAPPUZHA
+      - ERNAKULAM
+      - IDUKKI
+      - KANNUR
+      - KASARAGOD
+      - KOLLAM
+      - KOTTAYAM
+      - KOZHIKODE
+      - MALAPPURAM
+      - PALAKKAD
+      - PATHANAMTHITTA
+      - THIRUVANANTHAPURAM
+      - THRISSUR
+      - WAYANAD
+      type: string
+      description: |-
+        * `ALAPPUZHA` - Alappuzha
+        * `ERNAKULAM` - Ernakulam
+        * `IDUKKI` - Idukki
+        * `KANNUR` - Kannur
+        * `KASARAGOD` - Kasaragod
+        * `KOLLAM` - Kollam
+        * `KOTTAYAM` - Kottayam
+        * `KOZHIKODE` - Kozhikode
+        * `MALAPPURAM` - Malappuram
+        * `PALAKKAD` - Palakkad
+        * `PATHANAMTHITTA` - Pathanamthitta
+        * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+        * `THRISSUR` - Thrissur
+        * `WAYANAD` - Wayanad
+    DistrictStat:
+      type: object
+      properties:
+        district:
+          type: string
+        count:
+          type: integer
+      required:
+      - count
+      - district
+    Escalate:
+      type: object
+      properties:
+        remarks:
+          type: string
+          default: Escalated due to SLA breach.
+    EscalateRequest:
+      type: object
+      properties:
+        remarks:
+          type: string
+          default: Escalated due to SLA breach.
+    GrievanceAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique attachment identifier.
+        file:
+          type: string
+          format: uri
+          description: Private attachment file.
+        original_filename:
+          type: string
+          readOnly: true
+          description: Original filename as uploaded by client.
+        file_type:
+          type: string
+          readOnly: true
+          description: MIME type or file extension (e.g. application/pdf, image/jpeg).
+        file_size:
+          type: integer
+          readOnly: true
+          description: File size in bytes.
+        uploaded_by:
+          type: string
+          format: uuid
+          description: User who uploaded this file.
+          readOnly: true
+        uploaded_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when upload was completed.
+      required:
+      - created_at
+      - file
+      - file_size
+      - file_type
+      - id
+      - original_filename
+      - uploaded_by
+      - uploaded_by_name
+    GrievanceDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique UUID primary key.
+        reference_number:
+          type: string
+          readOnly: true
+          description: Human-readable unique tracking reference (e.g. CMK-2026-XXXXXX).
+        citizen:
+          allOf:
+          - $ref: '#/components/schemas/UserPublic'
+          readOnly: true
+        district:
+          allOf:
+          - $ref: '#/components/schemas/DistrictEnum'
+          readOnly: true
+          description: |-
+            Kerala District where grievance originated.
+
+            * `ALAPPUZHA` - Alappuzha
+            * `ERNAKULAM` - Ernakulam
+            * `IDUKKI` - Idukki
+            * `KANNUR` - Kannur
+            * `KASARAGOD` - Kasaragod
+            * `KOLLAM` - Kollam
+            * `KOTTAYAM` - Kottayam
+            * `KOZHIKODE` - Kozhikode
+            * `MALAPPURAM` - Malappuram
+            * `PALAKKAD` - Palakkad
+            * `PATHANAMTHITTA` - Pathanamthitta
+            * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+            * `THRISSUR` - Thrissur
+            * `WAYANAD` - Wayanad
+        category:
+          type: string
+          readOnly: true
+          description: Grievance classification (e.g., Public Infrastructure, Healthcare,
+            Revenue, Welfare).
+        subject:
+          type: string
+          readOnly: true
+          description: Brief subject of the grievance.
+        description:
+          type: string
+          readOnly: true
+          description: Detailed description of the citizen's complaint.
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          readOnly: true
+          description: |-
+            Priority level assessed manually or via AI triage.
+
+            * `LOW` - Low
+            * `MEDIUM` - Medium
+            * `HIGH` - High
+        status:
+          allOf:
+          - $ref: '#/components/schemas/NewStatusEnum'
+          readOnly: true
+          description: |-
+            Current life-cycle status of the grievance.
+
+            * `SUBMITTED` - Submitted
+            * `UNDER_REVIEW` - Under Review
+            * `IN_PROGRESS` - In Progress
+            * `RESOLVED` - Resolved
+            * `REOPENED` - Reopened
+        assigned_department:
+          allOf:
+          - $ref: '#/components/schemas/Department'
+          readOnly: true
+        assigned_officer:
+          allOf:
+          - $ref: '#/components/schemas/UserPublic'
+          readOnly: true
+        ai_suggestions:
+          readOnly: true
+          description: JSON payload containing AI department recommendation, priority
+            score, and extracted summary.
+        ai_metadata:
+          readOnly: true
+          description: AI provider, model version, timestamp and inference token counts.
+        due_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: Target resolution deadline according to citizen charter SLA.
+        is_escalated:
+          type: boolean
+          readOnly: true
+          description: Flag indicating overdue escalation to CMO supervisor.
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrievanceAttachment'
+          readOnly: true
+        history_logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrievanceHistory'
+          readOnly: true
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentAssignment'
+          readOnly: true
+        action_reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionTakenReport'
+          readOnly: true
+        feedback:
+          allOf:
+          - $ref: '#/components/schemas/CitizenFeedback'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp of submission.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp of latest modification.
+      required:
+      - action_reports
+      - ai_metadata
+      - ai_suggestions
+      - assigned_department
+      - assigned_officer
+      - assignments
+      - attachments
+      - category
+      - citizen
+      - created_at
+      - description
+      - district
+      - due_date
+      - feedback
+      - history_logs
+      - id
+      - is_escalated
+      - priority
+      - reference_number
+      - status
+      - subject
+      - updated_at
+    GrievanceHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique UUID identifier for this audit log.
+        previous_status:
+          allOf:
+          - $ref: '#/components/schemas/NewStatusEnum'
+          readOnly: true
+          description: |-
+            Grievance status prior to transition.
+
+            * `SUBMITTED` - Submitted
+            * `UNDER_REVIEW` - Under Review
+            * `IN_PROGRESS` - In Progress
+            * `RESOLVED` - Resolved
+            * `REOPENED` - Reopened
+        new_status:
+          allOf:
+          - $ref: '#/components/schemas/NewStatusEnum'
+          readOnly: true
+          description: |-
+            Grievance status after transition.
+
+            * `SUBMITTED` - Submitted
+            * `UNDER_REVIEW` - Under Review
+            * `IN_PROGRESS` - In Progress
+            * `RESOLVED` - Resolved
+            * `REOPENED` - Reopened
+        changed_by:
+          type: string
+          format: uuid
+          description: User (Citizen, Officer, or CMO Admin) who initiated this transition.
+          readOnly: true
+        changed_by_name:
+          type: string
+          readOnly: true
+        changed_by_role:
+          type: string
+          readOnly: true
+        remarks:
+          type: string
+          readOnly: true
+          description: Notes explaining reasons for the status transition.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the transition occurred.
+      required:
+      - changed_by
+      - changed_by_name
+      - changed_by_role
+      - created_at
+      - id
+      - new_status
+      - previous_status
+      - remarks
+    GrievanceList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique UUID primary key.
+        reference_number:
+          type: string
+          readOnly: true
+          description: Human-readable unique tracking reference (e.g. CMK-2026-XXXXXX).
+        citizen:
+          type: string
+          format: uuid
+          description: Citizen who filed the grievance.
+          readOnly: true
+        citizen_name:
+          type: string
+          readOnly: true
+        district:
+          allOf:
+          - $ref: '#/components/schemas/DistrictEnum'
+          readOnly: true
+          description: |-
+            Kerala District where grievance originated.
+
+            * `ALAPPUZHA` - Alappuzha
+            * `ERNAKULAM` - Ernakulam
+            * `IDUKKI` - Idukki
+            * `KANNUR` - Kannur
+            * `KASARAGOD` - Kasaragod
+            * `KOLLAM` - Kollam
+            * `KOTTAYAM` - Kottayam
+            * `KOZHIKODE` - Kozhikode
+            * `MALAPPURAM` - Malappuram
+            * `PALAKKAD` - Palakkad
+            * `PATHANAMTHITTA` - Pathanamthitta
+            * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+            * `THRISSUR` - Thrissur
+            * `WAYANAD` - Wayanad
+        category:
+          type: string
+          readOnly: true
+          description: Grievance classification (e.g., Public Infrastructure, Healthcare,
+            Revenue, Welfare).
+        subject:
+          type: string
+          readOnly: true
+          description: Brief subject of the grievance.
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          readOnly: true
+          description: |-
+            Priority level assessed manually or via AI triage.
+
+            * `LOW` - Low
+            * `MEDIUM` - Medium
+            * `HIGH` - High
+        status:
+          allOf:
+          - $ref: '#/components/schemas/NewStatusEnum'
+          readOnly: true
+          description: |-
+            Current life-cycle status of the grievance.
+
+            * `SUBMITTED` - Submitted
+            * `UNDER_REVIEW` - Under Review
+            * `IN_PROGRESS` - In Progress
+            * `RESOLVED` - Resolved
+            * `REOPENED` - Reopened
+        assigned_department:
+          type: string
+          format: uuid
+          description: Department currently responsible for resolving this grievance.
+          readOnly: true
+          nullable: true
+        assigned_department_code:
+          type: string
+          readOnly: true
+        assigned_department_name:
+          type: string
+          readOnly: true
+        assigned_officer:
+          type: string
+          format: uuid
+          description: Officer currently designated to investigate and handle this
+            grievance.
+          readOnly: true
+          nullable: true
+        assigned_officer_name:
+          type: string
+          readOnly: true
+        due_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: Target resolution deadline according to citizen charter SLA.
+        is_escalated:
+          type: boolean
+          readOnly: true
+          description: Flag indicating overdue escalation to CMO supervisor.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp of submission.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp of latest modification.
+      required:
+      - assigned_department
+      - assigned_department_code
+      - assigned_department_name
+      - assigned_officer
+      - assigned_officer_name
+      - category
+      - citizen
+      - citizen_name
+      - created_at
+      - district
+      - due_date
+      - id
+      - is_escalated
+      - priority
+      - reference_number
+      - status
+      - subject
+      - updated_at
+    LogoutRequest:
+      type: object
+      description: Serializer for invalidating refresh token.
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    NewStatusEnum:
+      enum:
+      - SUBMITTED
+      - UNDER_REVIEW
+      - IN_PROGRESS
+      - RESOLVED
+      - REOPENED
+      type: string
+      description: |-
+        * `SUBMITTED` - Submitted
+        * `UNDER_REVIEW` - Under Review
+        * `IN_PROGRESS` - In Progress
+        * `RESOLVED` - Resolved
+        * `REOPENED` - Reopened
+    PaginatedDepartmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Department'
+    PaginatedGrievanceListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrievanceList'
+    PatchedDepartmentRequest:
+      type: object
+      description: Standard Department serializer.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Official name of the department (e.g., Revenue, Health, Police).
+          maxLength: 200
+        code:
+          type: string
+          minLength: 1
+          description: Unique department short code (e.g., REV, HLT, POL).
+          maxLength: 50
+        description:
+          type: string
+          description: Brief overview of department jurisdiction and services.
+        is_active:
+          type: boolean
+          description: Designates whether this department is active and can receive
+            assignments.
+    PriorityEnum:
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      type: string
+      description: |-
+        * `LOW` - Low
+        * `MEDIUM` - Medium
+        * `HIGH` - High
+    PublicGrievanceTrack:
+      type: object
+      description: Public tracking serializer with ZERO private citizen credentials
+        or sensitive info.
+      properties:
+        reference_number:
+          type: string
+          readOnly: true
+          description: Human-readable unique tracking reference (e.g. CMK-2026-XXXXXX).
+        status:
+          allOf:
+          - $ref: '#/components/schemas/NewStatusEnum'
+          readOnly: true
+          description: |-
+            Current life-cycle status of the grievance.
+
+            * `SUBMITTED` - Submitted
+            * `UNDER_REVIEW` - Under Review
+            * `IN_PROGRESS` - In Progress
+            * `RESOLVED` - Resolved
+            * `REOPENED` - Reopened
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          readOnly: true
+          description: |-
+            Priority level assessed manually or via AI triage.
+
+            * `LOW` - Low
+            * `MEDIUM` - Medium
+            * `HIGH` - High
+        district:
+          allOf:
+          - $ref: '#/components/schemas/DistrictEnum'
+          readOnly: true
+          description: |-
+            Kerala District where grievance originated.
+
+            * `ALAPPUZHA` - Alappuzha
+            * `ERNAKULAM` - Ernakulam
+            * `IDUKKI` - Idukki
+            * `KANNUR` - Kannur
+            * `KASARAGOD` - Kasaragod
+            * `KOLLAM` - Kollam
+            * `KOTTAYAM` - Kottayam
+            * `KOZHIKODE` - Kozhikode
+            * `MALAPPURAM` - Malappuram
+            * `PALAKKAD` - Palakkad
+            * `PATHANAMTHITTA` - Pathanamthitta
+            * `THIRUVANANTHAPURAM` - Thiruvananthapuram
+            * `THRISSUR` - Thrissur
+            * `WAYANAD` - Wayanad
+        category:
+          type: string
+          readOnly: true
+          description: Grievance classification (e.g., Public Infrastructure, Healthcare,
+            Revenue, Welfare).
+        department_name:
+          type: string
+          readOnly: true
+        due_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: Target resolution deadline according to citizen charter SLA.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp of submission.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp of latest modification.
+      required:
+      - category
+      - created_at
+      - department_name
+      - district
+      - due_date
+      - priority
+      - reference_number
+      - status
+      - updated_at
+    Remark:
+      type: object
+      properties:
+        remarks:
+          type: string
+          minLength: 3
+      required:
+      - remarks
+    RemarkRequest:
+      type: object
+      properties:
+        remarks:
+          type: string
+          minLength: 3
+      required:
+      - remarks
+    ReviewATR:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/DecisionEnum'
+        remarks:
+          type: string
+          default: ''
+      required:
+      - decision
+    ReviewATRRequest:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/DecisionEnum'
+        remarks:
+          type: string
+          default: ''
+      required:
+      - decision
+    ReviewStatusEnum:
+      enum:
+      - PENDING
+      - APPROVED
+      - REJECTED
+      type: string
+      description: |-
+        * `PENDING` - Pending Review
+        * `APPROVED` - Approved
+        * `REJECTED` - Rejected
+    RoleEnum:
+      enum:
+      - CITIZEN
+      - CMO_ADMIN
+      - OFFICER
+      type: string
+      description: |-
+        * `CITIZEN` - Citizen
+        * `CMO_ADMIN` - CMO Administrator
+        * `OFFICER` - Department Officer
+    SuggestedPriorityEnum:
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      type: string
+      description: |-
+        * `LOW` - Low
+        * `MEDIUM` - Medium
+        * `HIGH` - High
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    UserPublic:
+      type: object
+      description: Public representation of user profile across the system.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique UUID identifier for the user.
+        email:
+          type: string
+          format: email
+          readOnly: true
+          description: Primary email address used for login.
+        full_name:
+          type: string
+          readOnly: true
+          description: Full legal name of the user.
+        mobile_number:
+          type: string
+          readOnly: true
+          description: Contact mobile number.
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+          description: |-
+            Role determining user permissions across the portal.
+
+            * `CITIZEN` - Citizen
+            * `CMO_ADMIN` - CMO Administrator
+            * `OFFICER` - Department Officer
+        department:
+          type: string
+          format: uuid
+          description: Assigned department (applicable only for Department Officers).
+          readOnly: true
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        department_code:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the user account was created.
+      required:
+      - created_at
+      - department
+      - department_code
+      - department_name
+      - email
+      - full_name
+      - id
+      - is_active
+      - mobile_number
+      - role
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,21 @@
+# Environment & Local Secrets
+.env
+*.env
+!.env.example
+*.local
+
+# Python Virtual Environment & Cache
+.venv/
+env/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+db.sqlite3
+
+# Media and Static assets
+media/
+staticfiles/
+
+# Logs
+*.log
