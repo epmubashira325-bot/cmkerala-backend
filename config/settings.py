@@ -103,6 +103,15 @@ DATABASES = {
     }
 }
 
+# If DATABASE_URL is provided (e.g. Render / Cloud PostgreSQL), parse it automatically
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    try:
+        import dj_database_url
+        DATABASES['default'] = dj_database_url.config(default=database_url, conn_max_age=600)
+    except ImportError:
+        pass
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
